@@ -18,7 +18,6 @@ from sympy.solvers.inequalities import solve_poly_inequality
 import pandas as pd
 
 external_stylesheets = [
-    'https://codepen.io/chriddyp/pen/bWLwgP.css',
     {
         'href': 'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css',
         'rel': 'stylesheet',
@@ -62,7 +61,6 @@ app.layout = html.Div(children=[
             'margin-top':'20px',
             'margin-bottom':'30px'
         },
-        # Allow multiple files to be uploaded
         multiple=False,
     ),
 
@@ -120,7 +118,7 @@ def parse_contents(contents, filename, date):
             'whiteSpace': 'pre-wrap',
             'wordBreak': 'break-all'
         })
-    ])
+    ], style={'margin-top':'20px'})
 
 @app.callback(Output('output-data-upload', 'children'),
               [Input('upload-data', 'contents')],
@@ -145,7 +143,7 @@ def update_output(contents, name, date):
             ),
 
             html.Hr()
-    ])
+    ], style={'margin-top':'20px'})
 
 @app.callback(Output('output-graph', 'children'),
               [Input('upload-data', 'contents')])
@@ -175,7 +173,7 @@ def update_graph(contents):
 
     y_plot = [ y / (1+x)**max_year for y,x in list(zip(y_plot,x_plot))]
     x_plot = [x*100 for x in x_plot]
-    return html.H2(children=sol, style={'margin-top':'20px'}), dcc.Graph(
+    return html.H4(children=sol, style={'margin-top':'20px'}), dcc.Graph(
         figure=go.Figure(
             data=[go.Scatter(
                     x=x_plot,
