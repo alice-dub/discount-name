@@ -28,7 +28,8 @@ external_stylesheets = [
 ]
 
 max_year = 100
-interval = 0.1
+interval = 0.001
+xmax=0.1
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions']=True
@@ -155,8 +156,9 @@ def update_graph(contents):
     else:
         df = pd.read_csv('VAN_input.csv')
     x = Symbol('x', real="True")
-    x_plot = [x*interval for x in range(0, int(1.0/interval))]
-    y_plot = [0 for x in range(0, int(1.0/interval))]
+    x_plot = [x*interval for x in range(0, int(xmax/interval))]
+    z_plot = [0 for x in range(0, int(xmax/interval))]
+    y_plot = [0 for x in range(0, int(xmax/interval))]
     expr = 0
     for index, row in df.iterrows():
 
@@ -165,30 +167,34 @@ def update_graph(contents):
 
         expr = expr + expr1
         y_plot = [a + b for a,b in list(zip(y_plot,y_plot1))]
-        print(y_plot)
         
     result = solve(expr, x)
     solutions = set([str((solution.n(2))*100) for solution in result if solution > 0])
     solutions.discard('-100')
-    #print(solutions)
     sol = "Your project is balanced for a discount rate of {} %".format(','.join(solutions))
 
     y_plot = [ y / (1+x)**max_year for y,x in list(zip(y_plot,x_plot))]
     x_plot = [x*100 for x in x_plot]
-    expr2 = expr / (1+x)**max_year
-    #print(type(expr2))
-    #print(expr(1))
-    plot(expr2, (x, 0, 1), ylabel='Discount rate')
-    return html.H4(children=sol, style={'margin-top':'20px'}), dcc.Graph(
+    return html.H2(children=sol, style={'margin-top':'20px'}), dcc.Graph(
         figure=go.Figure(
-            data=go.Scatter(
+            data=[go.Scatter(
+                    x=x_plot,
+                    y=z_plot,
+                    line=dict(color='green', width=2
+                    )),
+                go.Scatter(
                     x=x_plot,
                     y=y_plot,
-                    )
-                )
-        , style={'height': 300})
-
-
+                    line=dict(color='firebrick', width=4
+                    ))],
+            layout=go.Layout(
+                title="Net Present Value of your project according to discount rate",
+                showlegend=False,
+                xaxis=dict(title='Discount rate (in %)'),
+                yaxis=dict(title='Net Present Value')
+            )
+        )
+        , style={'height': 700})
 
 
 if __name__ == '__main__':
