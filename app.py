@@ -78,7 +78,7 @@ className="container"
 @app.callback(Output('tabs-content-example', 'children'),
               [Input('tabs-example', 'value')])
 
-def render_content(tab):
+def caca_content(tab):
     if tab == 'tab-1-example':
         return  html.Div(id='output-data-upload')
     elif tab == 'tab-2-example':
@@ -128,33 +128,16 @@ def parse_contents(contents, filename, date):
         })
     ])
 
-def parse_contents2(contents, filename, date):
-    content_type, content_string = contents.split(',')
-
-    decoded = base64.b64decode(content_string)
-    try:
-            df = pd.read_csv(
-                io.StringIO(decoded.decode('utf-8')))
-
-    except Exception as e:
-        print(e)
-        return html.Div([
-            'There was an error processing this file.'
-        ])
-
-    return df
-
 @app.callback(Output('output-data-upload', 'children'),
               [Input('upload-data', 'contents')],
               [State('upload-data', 'filename'),
                State('upload-data', 'last_modified')])
 
 
-def update_output(list_of_contents, list_of_names, list_of_dates):
-    if list_of_contents is not None:
+def update_output(contents, name, date):
+    if contents is not None:
         children = [
-            parse_contents(c, n, d) for c, n, d in
-            zip(list_of_contents, list_of_names, list_of_dates)]
+            parse_contents(contents, name, date)]
         return children
     else:
         df = pd.read_csv('VAN_input.csv')
@@ -169,13 +152,6 @@ def update_output(list_of_contents, list_of_names, list_of_dates):
 
             html.Hr()
     ])
-
-def solving_rate(list_of_contents, list_of_names, list_of_dates):
-    if list_of_contents is not None:
-        df = [parse_contents2(c, n, d) for c, n, d in
-            zip(list_of_contents, list_of_names, list_of_dates)]
-        print(df)
-        print(type(df))
 
 
 #with open('VAN_input.csv') as csv_file:
