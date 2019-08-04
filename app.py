@@ -9,6 +9,7 @@ from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
+import plotly.graph_objs as go
 
 from sympy.solvers import solve
 from sympy import Symbol, N, real_roots, plot
@@ -26,7 +27,8 @@ external_stylesheets = [
     }
 ]
 
-llala = 4
+max_year = 100
+interval = 0.1
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions']=True
@@ -78,37 +80,28 @@ className="container"
 @app.callback(Output('tabs-content-example', 'children'),
               [Input('tabs-example', 'value')])
 
-def caca_content(tab):
+def render_content(tab):
     if tab == 'tab-1-example':
         return  html.Div(id='output-data-upload')
     elif tab == 'tab-2-example':
-        return dcc.Graph(
-                id='example-graph',
-                figure={
-                    'data': [
-                        {'x': [1, 2, 3], 'y': [llala, 1, 2], 'type': 'bar', 'name': 'SF'},
-                        {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'Montréal'},
-                    ],
-                    'layout': {
-                        'title': 'Dash Data Visualization'
-                    }
-                }
-            )
+        return html.Div(id='output-graph')
 
-def parse_contents(contents, filename, date):
+def parse_csv(contents):
     content_type, content_string = contents.split(',')
 
     decoded = base64.b64decode(content_string)
     try:
-            df = pd.read_csv(
+           df = pd.read_csv(
                 io.StringIO(decoded.decode('utf-8')))
-
+           return df
     except Exception as e:
         print(e)
         return html.Div([
             'There was an error processing this file.'
         ])
 
+def parse_contents(contents, filename, date):
+    df = parse_csv(contents)
     return html.Div([
         html.H5(filename),
         html.H6(datetime.datetime.fromtimestamp(date)),
@@ -153,27 +146,48 @@ def update_output(contents, name, date):
             html.Hr()
     ])
 
+@app.callback(Output('output-graph', 'children'),
+              [Input('upload-data', 'contents')])
 
-#with open('VAN_input.csv') as csv_file:
-#    csv_reader = csv.reader(csv_file, delimiter=',')
-#    i = -1
-#    x = Symbol('x', real="True")
-#    expr = 0
-#    annees= []
-#    for row in csv_reader:
-#        if i > -1:
-#            print(row)
-#            expr1 = (int(row[2]) - int(row[1])) * (1 + x)**(11-i)
-#            expr = expr + expr1
-#            print(expr)
-#        i += 1
+def update_graph(contents):
+    if contents is not None:
+        df = parse_csv(contents)
+    else:
+        df = pd.read_csv('VAN_input.csv')
+    x = Symbol('x', real="True")
+    x_plot = [x*interval for x in range(0, int(1.0/interval))]
+    y_plot = [0 for x in range(0, int(1.0/interval))]
+    expr = 0
+    for index, row in df.iterrows():
 
-#result = solve(expr, x)
+        expr1 = (int(row[2]) - int(row[1])) * (1 + x)**(max_year-row[0])
+        y_plot1 = [ (int(row[2]) - int(row[1])) * (1 + x)**(max_year-row[0]) for x in x_plot]
 
-#print([solution.n(2) for solution in result])
+        expr = expr + expr1
+        y_plot = [a + b for a,b in list(zip(y_plot,y_plot1))]
+        print(y_plot)
+        
+    result = solve(expr, x)
+    solutions = set([str((solution.n(2))*100) for solution in result if solution > 0])
+    solutions.discard('-100')
+    #print(solutions)
+    sol = "Your project is balanced for a discount rate of {} %".format(','.join(solutions))
 
-#expr2 = expr / (1+x)**11
-#plot(expr2, (x, 0, 1), ylabel='Discount rate')
+    y_plot = [ y / (1+x)**max_year for y,x in list(zip(y_plot,x_plot))]
+    x_plot = [x*100 for x in x_plot]
+    expr2 = expr / (1+x)**max_year
+    #print(type(expr2))
+    #print(expr(1))
+    plot(expr2, (x, 0, 1), ylabel='Discount rate')
+    return html.H4(children=sol, style={'margin-top':'20px'}), dcc.Graph(
+        figure=go.Figure(
+            data=go.Scatter(
+                    x=x_plot,
+                    y=y_plot,
+                    )
+                )
+        , style={'height': 300})
+
 
 
 
