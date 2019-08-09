@@ -2,7 +2,7 @@
 import base64
 import datetime
 import io
-import csv
+import functools
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -12,8 +12,7 @@ import dash_table
 import plotly.graph_objs as go
 
 from sympy.solvers import solve
-from sympy import Symbol, N, real_roots, plot
-from sympy.solvers.inequalities import solve_poly_inequality
+from sympy import Symbol
 
 import pandas as pd
 
@@ -28,7 +27,7 @@ external_stylesheets = [
 
 max_year = 100
 interval = 0.001
-xmax=0.1
+xmax = 0.1
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions']=True
@@ -125,7 +124,7 @@ def parse_contents(contents, filename, date):
               [State('upload-data', 'filename'),
                State('upload-data', 'last_modified')])
 
-
+@functools.lru_cache(maxsize=32)
 def update_output(contents, name, date):
     if contents is not None:
         children = [
@@ -148,6 +147,7 @@ def update_output(contents, name, date):
 @app.callback(Output('output-graph', 'children'),
               [Input('upload-data', 'contents')])
 
+@functools.lru_cache(maxsize=32)
 def update_graph(contents):
     if contents is not None:
         df = parse_csv(contents)
@@ -165,7 +165,7 @@ def update_graph(contents):
 
         expr = expr + expr1
         y_plot = [a + b for a,b in list(zip(y_plot,y_plot1))]
-        
+
     result = solve(expr, x)
     solutions = set([str((solution.n(2))*100) for solution in result if solution > 0])
     solutions.discard('-100')
